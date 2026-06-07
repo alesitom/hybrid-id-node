@@ -14,19 +14,34 @@ export const MAX_ID_LENGTH = 147;
 /** Valid ID characters: alphanumeric + underscore (the prefix separator). */
 export const REGEX_ID_CHARS = /^[a-zA-Z0-9_]+$/;
 
-/** All components of a parsed HybridId. See {@link parse}. */
-export interface ParsedHybridId {
-  valid: boolean;
-  prefix: string | null;
-  body: string | null;
-  profile: string | null;
-  /** Millisecond timestamp, or null when invalid. */
-  timestamp: number | null;
-  /** JS Date built from the timestamp, or null when invalid. */
-  date: Date | null;
-  node: string | null;
-  random: string | null;
-}
+/**
+ * All components of a parsed HybridId. A discriminated union on `valid`: when
+ * `valid` is true every component is populated; when false they are null (though
+ * `prefix`/`body` may still carry debugging context). See {@link parse}.
+ */
+export type ParsedHybridId =
+  | {
+      valid: true;
+      prefix: string | null;
+      body: string;
+      profile: string;
+      /** Millisecond timestamp. */
+      timestamp: number;
+      /** JS Date built from the timestamp. */
+      date: Date;
+      node: string | null;
+      random: string;
+    }
+  | {
+      valid: false;
+      prefix: string | null;
+      body: string | null;
+      profile: null;
+      timestamp: null;
+      date: null;
+      node: null;
+      random: null;
+    };
 
 /**
  * Resolve a profile's configuration from the shared default registry.

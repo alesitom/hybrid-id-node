@@ -43,6 +43,8 @@ export {
 
 export { minForTimestamp, maxForTimestamp, minForDate, maxForDate } from './range.js';
 
+export { HybridId } from './hybrid-id.js';
+
 export {
   HybridIdError,
   IdOverflowError,
