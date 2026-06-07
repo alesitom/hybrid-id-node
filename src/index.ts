@@ -15,6 +15,10 @@ export {
   type HybridIdGeneratorOptions,
 } from './hybrid-id-generator.js';
 
+export type { IdGenerator } from './id-generator.js';
+
+export { MockHybridIdGenerator, type MockCallback } from './mock.js';
+
 export {
   PREFIX_SEPARATOR,
   PREFIX_MAX_LENGTH,

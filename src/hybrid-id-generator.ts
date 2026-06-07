@@ -12,6 +12,7 @@ import { Profile, type ProfileConfig, type ProfileInput } from './profile.js';
 import { defaultRegistry, type ProfileRegistryInterface } from './profile-registry.js';
 import { applyPrefix, extractPrefix, isValidPrefix, stripPrefix } from './prefix.js';
 import { MAX_ID_LENGTH, REGEX_ID_CHARS } from './metadata.js';
+import type { IdGenerator } from './id-generator.js';
 
 /**
  * Default maximum allowed drift (ms) between the monotonic counter and
@@ -139,7 +140,7 @@ function autoDetectNode(): string {
  * wall-clock time; if it ends up more than `maxDriftMs` ahead, generation throws
  * `IdOverflowError` until the real clock catches up.
  */
-export class HybridIdGenerator {
+export class HybridIdGenerator implements IdGenerator {
   private readonly registry: ProfileRegistryInterface;
   private readonly profileName: string;
   private readonly profileConfig: ProfileConfig;
@@ -205,6 +206,71 @@ export class HybridIdGenerator {
       );
     }
     this.maxIdLength = maxIdLength;
+  }
+
+  /**
+   * Build a generator from environment variables (read from `process.env`):
+   * `HYBRID_ID_PROFILE`, `HYBRID_ID_NODE`, `HYBRID_ID_REQUIRE_NODE`,
+   * `HYBRID_ID_BLIND`, `HYBRID_ID_BLIND_SECRET` (base64), `HYBRID_ID_MAX_LENGTH`.
+   *
+   * Treat `HYBRID_ID_NODE`/`HYBRID_ID_BLIND_SECRET` as sensitive configuration.
+   */
+  static fromEnv(registry?: ProfileRegistryInterface): HybridIdGenerator {
+    const reg = registry ?? defaultRegistry();
+    const env = (name: string): string | undefined => {
+      const v = process.env[name];
+      return v !== undefined && v !== '' ? v : undefined;
+    };
+    const clip = (v: string): string => (v.length > 20 ? `${v.slice(0, 20)}...` : v);
+
+    const profile = env('HYBRID_ID_PROFILE') ?? 'standard';
+    if (reg.get(profile) === undefined) {
+      throw new InvalidProfileError(fmt(Messages.GEN_ENV_PROFILE_INVALID, clip(profile)));
+    }
+
+    const node = env('HYBRID_ID_NODE') ?? null;
+    if (node !== null && (node.length !== 2 || !isBase62String(node))) {
+      throw new InvalidIdError(fmt(Messages.GEN_ENV_NODE_INVALID, clip(node)));
+    }
+
+    // Default true; explicit "0" disables the guard.
+    const requireNodeEnv = env('HYBRID_ID_REQUIRE_NODE');
+    const requireExplicitNode = requireNodeEnv === undefined ? true : requireNodeEnv !== '0';
+
+    const blindEnv = env('HYBRID_ID_BLIND');
+    const blind = blindEnv !== undefined && blindEnv !== '0';
+
+    const blindSecretEnv = env('HYBRID_ID_BLIND_SECRET');
+    let blindSecret: Buffer | null = null;
+    if (blindSecretEnv !== undefined) {
+      if (!/^[A-Za-z0-9+/]+={0,2}$/.test(blindSecretEnv)) {
+        throw new InvalidIdError(Messages.GEN_ENV_BLIND_SECRET_INVALID);
+      }
+      blindSecret = Buffer.from(blindSecretEnv, 'base64');
+      if (blindSecret.length === 0) {
+        throw new InvalidIdError(Messages.GEN_ENV_BLIND_SECRET_INVALID);
+      }
+    }
+
+    const maxLengthEnv = env('HYBRID_ID_MAX_LENGTH');
+    let maxIdLength: number | null = null;
+    if (maxLengthEnv !== undefined) {
+      const n = Number(maxLengthEnv);
+      if (!Number.isInteger(n) || n < 1) {
+        throw new InvalidIdError(fmt(Messages.GEN_ENV_MAX_LENGTH_INVALID, clip(maxLengthEnv)));
+      }
+      maxIdLength = n;
+    }
+
+    return new HybridIdGenerator({
+      profile,
+      node,
+      maxIdLength,
+      requireExplicitNode,
+      registry: reg,
+      blind,
+      blindSecret,
+    });
   }
 
   // ---------------------------------------------------------------------------
