@@ -253,7 +253,11 @@ function rejectPrefixed(hybridId: string, method: string): void {
   }
 }
 
-/** Parse a hex substring to BigInt, rejecting segments wider than the 64-bit range. */
+/**
+ * Parse a hex substring to BigInt. Rejects segments wider than 15 hex chars
+ * (60 bits) — the widest this converter ever slices — mirroring the PHP guard
+ * that keeps values within a signed 64-bit integer (16 hex chars would exceed it).
+ */
 function safeHexToBigInt(hex: string): bigint {
   if (hex.length > 15) {
     throw new InvalidIdError(Messages.UUID_HEX_OVERFLOW);
