@@ -9,8 +9,9 @@ import {
 } from './exception/errors.js';
 import { Messages, fmt } from './exception/messages.js';
 import { Profile, type ProfileConfig, type ProfileInput } from './profile.js';
-import { ProfileRegistry, type ProfileRegistryInterface } from './profile-registry.js';
-import { applyPrefix } from './prefix.js';
+import { defaultRegistry, type ProfileRegistryInterface } from './profile-registry.js';
+import { applyPrefix, extractPrefix, isValidPrefix, stripPrefix } from './prefix.js';
+import { MAX_ID_LENGTH, REGEX_ID_CHARS } from './metadata.js';
 
 /**
  * Default maximum allowed drift (ms) between the monotonic counter and
@@ -36,13 +37,6 @@ export interface HybridIdGeneratorOptions {
   blind?: boolean;
   /** Per-instance HMAC key (>=32 bytes). Generated automatically when blind and omitted. */
   blindSecret?: Buffer | Uint8Array | null;
-}
-
-let defaultRegistryInstance: ProfileRegistry | undefined;
-
-/** Shared registry used when no explicit registry is injected. */
-function defaultRegistry(): ProfileRegistry {
-  return (defaultRegistryInstance ??= ProfileRegistry.withDefaults());
 }
 
 /**
@@ -274,6 +268,34 @@ export class HybridIdGenerator {
   /** Whether this instance generates blind (HMAC-hashed timestamp+node) IDs. */
   isBlind(): boolean {
     return this.blind;
+  }
+
+  /**
+   * Validate that an ID matches THIS instance's profile (and optionally a prefix).
+   *
+   * A format check, not an authorization mechanism. Unlike the standalone
+   * {@link isValid}, this checks the body length against the configured profile.
+   *
+   * @param expectedPrefix When given, the ID's prefix must match exactly.
+   */
+  validate(id: string, expectedPrefix?: string | null): boolean {
+    if (id === '' || id.length > MAX_ID_LENGTH || !REGEX_ID_CHARS.test(id)) {
+      return false;
+    }
+
+    const body = stripPrefix(id);
+    if (body.length !== this.profileConfig.length || !isBase62String(body)) {
+      return false;
+    }
+
+    const prefix = extractPrefix(id);
+    if (expectedPrefix !== undefined && expectedPrefix !== null) {
+      return prefix === expectedPrefix;
+    }
+    if (prefix !== null && !isValidPrefix(prefix)) {
+      return false;
+    }
+    return true;
   }
 
   // ---------------------------------------------------------------------------

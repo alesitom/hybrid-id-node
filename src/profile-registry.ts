@@ -90,3 +90,14 @@ export class ProfileRegistry implements ProfileRegistryInterface {
     this.customLengthMap = {};
   }
 }
+
+let defaultInstance: ProfileRegistry | undefined;
+
+/**
+ * Shared registry (built-ins only) used by the generator's default and by the
+ * standalone metadata functions. Mirrors the PHP package's global default
+ * registry: custom profiles registered on *other* instances are not visible here.
+ */
+export function defaultRegistry(): ProfileRegistry {
+  return (defaultInstance ??= ProfileRegistry.withDefaults());
+}

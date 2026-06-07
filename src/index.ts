@@ -26,6 +26,22 @@ export {
 } from './prefix.js';
 
 export {
+  parse,
+  detectProfile,
+  isValid,
+  extractTimestamp,
+  extractDate,
+  extractNode,
+  compare,
+  recommendedColumnSize,
+  entropy,
+  profileConfig,
+  profiles,
+  MAX_ID_LENGTH,
+  type ParsedHybridId,
+} from './metadata.js';
+
+export {
   HybridIdError,
   IdOverflowError,
   InvalidIdError,
