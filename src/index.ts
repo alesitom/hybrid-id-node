@@ -10,6 +10,22 @@ export { ProfileRegistry } from './profile-registry.js';
 export type { ProfileRegistryInterface } from './profile-registry.js';
 
 export {
+  HybridIdGenerator,
+  DEFAULT_MAX_DRIFT_MS,
+  type HybridIdGeneratorOptions,
+} from './hybrid-id-generator.js';
+
+export {
+  PREFIX_SEPARATOR,
+  PREFIX_MAX_LENGTH,
+  isValidPrefix,
+  validatePrefix,
+  applyPrefix,
+  extractPrefix,
+  stripPrefix,
+} from './prefix.js';
+
+export {
   HybridIdError,
   IdOverflowError,
   InvalidIdError,
