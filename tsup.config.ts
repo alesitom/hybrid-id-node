@@ -9,7 +9,7 @@ export default defineConfig({
   dts: { entry: { index: 'src/index.ts' } },
   clean: true,
   sourcemap: true,
-  target: 'node18',
+  target: 'node22',
   splitting: false,
   shims: true,
 });
