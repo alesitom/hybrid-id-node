@@ -241,9 +241,10 @@ export class HybridIdGenerator {
     if (!Number.isInteger(count) || count < 1 || count > 10_000) {
       throw new RangeError(fmt(Messages.GEN_BATCH_LIMIT, count));
     }
-    const ids: string[] = [];
+    // Pre-allocate: the size is known, so avoid repeated array growth in V8.
+    const ids = new Array<string>(count);
     for (let i = 0; i < count; i++) {
-      ids.push(this.generate(prefix));
+      ids[i] = this.generate(prefix);
     }
     return ids;
   }

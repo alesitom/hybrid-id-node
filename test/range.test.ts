@@ -51,8 +51,29 @@ describe('Date variants', () => {
   });
 });
 
+describe('prefix support', () => {
+  it('prepends a validated prefix to both bounds', () => {
+    expect(minForTimestamp(TS, 'standard', 'usr')).toBe(`usr_${minForTimestamp(TS)}`);
+    expect(maxForTimestamp(TS, 'standard', 'usr')).toBe(`usr_${maxForTimestamp(TS)}`);
+    expect(minForDate(new Date(TS), 'standard', 'usr')).toBe(`usr_${minForTimestamp(TS)}`);
+  });
+
+  it('brackets a real prefixed ID', () => {
+    const gen = new HybridIdGenerator({ node: 'A1' });
+    const id = gen.generate('usr');
+    const ts = extractTimestamp(id);
+    expect(minForTimestamp(ts, 'standard', 'usr') <= id).toBe(true);
+    expect(id <= maxForTimestamp(ts, 'standard', 'usr')).toBe(true);
+  });
+});
+
 describe('overflow', () => {
   it('throws when the timestamp exceeds 8 base62 chars', () => {
     expect(() => minForTimestamp(62 ** 8)).toThrow(IdOverflowError); // 62^8 needs 9 chars
+  });
+
+  it('throws on a negative timestamp', () => {
+    expect(() => minForTimestamp(-1)).toThrow(IdOverflowError);
+    expect(() => maxForDate(new Date(-1000))).toThrow(IdOverflowError);
   });
 });

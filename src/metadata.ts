@@ -199,9 +199,11 @@ export function extractDate(id: string): Date {
  * @throws {InvalidIdError} If the ID is malformed.
  */
 export function extractNode(id: string): string | null {
-  assertValid(id);
   const profile = detectProfile(id);
-  const config = profileConfig(profile as string);
+  if (profile === null) {
+    throw new InvalidIdError(Messages.GEN_FORMAT_INVALID);
+  }
+  const config = profileConfig(profile);
   if (config.node === 0) {
     return null;
   }

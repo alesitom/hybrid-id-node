@@ -67,3 +67,20 @@ describe('serialization', () => {
     expect(JSON.stringify({ ref: vo })).toBe(`{"ref":"${raw}"}`);
   });
 });
+
+describe('value semantics', () => {
+  it('valueOf enables primitive string ordering', () => {
+    const a = HybridId.fromString(std.generate());
+    const b = HybridId.fromString(std.generate());
+    expect(a.valueOf()).toBe(a.id);
+    expect(a < b).toBe(true); // a generated before b, lexical order holds
+  });
+
+  it('equals compares against a HybridId or a raw string', () => {
+    const raw = std.generate('usr');
+    const vo = HybridId.fromString(raw);
+    expect(vo.equals(raw)).toBe(true);
+    expect(vo.equals(HybridId.fromString(raw))).toBe(true);
+    expect(vo.equals(std.generate())).toBe(false);
+  });
+});

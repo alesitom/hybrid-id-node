@@ -45,7 +45,17 @@ export class HybridId {
     return this.id;
   }
 
+  /** Primitive coercion to the underlying string (enables `<`/`>` ordering). */
+  valueOf(): string {
+    return this.id;
+  }
+
   toJSON(): string {
     return this.id;
+  }
+
+  /** Value equality against another HybridId or a raw ID string. */
+  equals(other: HybridId | string): boolean {
+    return this.id === (other instanceof HybridId ? other.id : other);
   }
 }
