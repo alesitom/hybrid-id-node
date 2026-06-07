@@ -3,6 +3,12 @@ export const VERSION = '1.0.0';
 
 export { BASE62, encodeBase62, decodeBase62, isBase62String } from './base62.js';
 
+export { Profile } from './profile.js';
+export type { ProfileConfig, BuiltInProfile, ProfileInput } from './profile.js';
+
+export { ProfileRegistry } from './profile-registry.js';
+export type { ProfileRegistryInterface } from './profile-registry.js';
+
 export {
   HybridIdError,
   IdOverflowError,
