@@ -24,21 +24,23 @@ export interface ProfileRegistryInterface {
   reset(): void;
 }
 
-const BUILT_IN: Readonly<Record<string, ProfileConfig>> = Object.freeze({
-  compact: Object.freeze({ length: 16, ts: 8, node: 0, random: 8 }),
-  standard: Object.freeze({ length: 20, ts: 8, node: 2, random: 10 }),
-  extended: Object.freeze({ length: 24, ts: 8, node: 2, random: 14 }),
-});
+// Maps (not plain objects) so arbitrary lookups like get('__proto__') can never
+// resolve to a prototype member — they return undefined as expected.
+const BUILT_IN = new Map<string, ProfileConfig>([
+  ['compact', Object.freeze({ length: 16, ts: 8, node: 0, random: 8 })],
+  ['standard', Object.freeze({ length: 20, ts: 8, node: 2, random: 10 })],
+  ['extended', Object.freeze({ length: 24, ts: 8, node: 2, random: 14 })],
+]);
 
-const BUILT_IN_LENGTH_MAP: Readonly<Record<number, string>> = Object.freeze({
-  16: 'compact',
-  20: 'standard',
-  24: 'extended',
-});
+const BUILT_IN_LENGTH_MAP = new Map<number, string>([
+  [16, 'compact'],
+  [20, 'standard'],
+  [24, 'extended'],
+]);
 
 export class ProfileRegistry implements ProfileRegistryInterface {
-  private custom: Record<string, ProfileConfig> = {};
-  private customLengthMap: Record<number, string> = {};
+  private custom = new Map<string, ProfileConfig>();
+  private customLengthMap = new Map<number, string>();
 
   /** Create a registry seeded with the built-in profiles. */
   static withDefaults(): ProfileRegistry {
@@ -46,11 +48,11 @@ export class ProfileRegistry implements ProfileRegistryInterface {
   }
 
   get(name: string): ProfileConfig | undefined {
-    return BUILT_IN[name] ?? this.custom[name];
+    return BUILT_IN.get(name) ?? this.custom.get(name);
   }
 
   getByLength(length: number): string | undefined {
-    return BUILT_IN_LENGTH_MAP[length] ?? this.customLengthMap[length];
+    return BUILT_IN_LENGTH_MAP.get(length) ?? this.customLengthMap.get(length);
   }
 
   register(name: string, random: number, node = 2): void {
@@ -77,17 +79,17 @@ export class ProfileRegistry implements ProfileRegistryInterface {
       throw new InvalidProfileError(fmt(Messages.LENGTH_CONFLICT, length, existing));
     }
 
-    this.custom[name] = Object.freeze({ length, ts: 8, node, random });
-    this.customLengthMap[length] = name;
+    this.custom.set(name, Object.freeze({ length, ts: 8, node, random }));
+    this.customLengthMap.set(length, name);
   }
 
   all(): string[] {
-    return [...Object.keys(BUILT_IN), ...Object.keys(this.custom)];
+    return [...BUILT_IN.keys(), ...this.custom.keys()];
   }
 
   reset(): void {
-    this.custom = {};
-    this.customLengthMap = {};
+    this.custom.clear();
+    this.customLengthMap.clear();
   }
 }
 

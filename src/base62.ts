@@ -93,15 +93,9 @@ export function decodeBase62(str: string): bigint {
   return result;
 }
 
+const BASE62_RE = /^[0-9A-Za-z]+$/;
+
 /** True when `str` is non-empty and contains only base62 characters. */
 export function isBase62String(str: string): boolean {
-  if (str === '') {
-    return false;
-  }
-  for (let i = 0; i < str.length; i++) {
-    if (BASE62_MAP[str.charAt(i)] === undefined) {
-      return false;
-    }
-  }
-  return true;
+  return BASE62_RE.test(str);
 }

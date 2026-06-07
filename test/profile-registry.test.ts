@@ -15,6 +15,13 @@ describe('built-in profiles', () => {
     expect(ProfileRegistry.withDefaults().get('nope')).toBeUndefined();
   });
 
+  it('does not resolve prototype keys (no proto-key lookup)', () => {
+    const r = ProfileRegistry.withDefaults();
+    expect(r.get('__proto__')).toBeUndefined();
+    expect(r.get('constructor')).toBeUndefined();
+    expect(r.get('toString')).toBeUndefined();
+  });
+
   it('maps body length back to a profile name', () => {
     const r = ProfileRegistry.withDefaults();
     expect(r.getByLength(16)).toBe('compact');

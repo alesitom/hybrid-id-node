@@ -64,7 +64,9 @@ function resolveBlindSecret(blind: boolean, secret: Buffer | Uint8Array | null):
  *
  * Pure given its inputs — exported for testing. `hmacNode` is the node string to
  * fold into the HMAC (empty when the profile is nodeless), and `opaqueLen` is
- * `ts + node` characters. Reads 2 HMAC bytes per output char to remove modulo bias.
+ * `ts + node` characters. Reads 2 HMAC bytes per output char so the `% 62` modulo
+ * bias is reduced to ~0.0014% (a 16-bit value, not fully eliminated like rejection
+ * sampling — negligible, and matches the PHP implementation).
  *
  * @internal
  */
@@ -131,6 +133,11 @@ function autoDetectNode(): string {
  *
  * NOT safe to share across `worker_threads`/`cluster` workers: each worker must
  * use its own instance (or distinct explicit nodes) to avoid timestamp collisions.
+ *
+ * Clock sensitivity: timestamps come from `Date.now()`. A large backward clock step
+ * (e.g. an NTP correction) makes the monotonic guard advance the counter ahead of
+ * wall-clock time; if it ends up more than `maxDriftMs` ahead, generation throws
+ * `IdOverflowError` until the real clock catches up.
  */
 export class HybridIdGenerator {
   private readonly registry: ProfileRegistryInterface;
