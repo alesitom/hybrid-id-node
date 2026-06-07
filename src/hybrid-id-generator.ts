@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHmac, randomBytes } from 'node:crypto';
 import { BASE62, encodeBase62, isBase62String } from './base62.js';
 import {
   HybridIdError,
@@ -32,6 +32,10 @@ export interface HybridIdGeneratorOptions {
   registry?: ProfileRegistryInterface;
   /** Forward-drift cap in ms; defaults to {@link DEFAULT_MAX_DRIFT_MS}. */
   maxDriftMs?: number;
+  /** Enable blind mode (HMAC-hashed timestamp+node). Implied when `blindSecret` is set. */
+  blind?: boolean;
+  /** Per-instance HMAC key (>=32 bytes). Generated automatically when blind and omitted. */
+  blindSecret?: Buffer | Uint8Array | null;
 }
 
 let defaultRegistryInstance: ProfileRegistry | undefined;
@@ -104,6 +108,8 @@ export class HybridIdGenerator {
   private readonly node: string;
   private readonly maxIdLength: number | null;
   private readonly maxDriftMs: number;
+  private readonly blind: boolean;
+  private readonly blindSecret: Buffer | null;
   private lastTimestamp = 0;
 
   constructor(options: HybridIdGeneratorOptions = {}) {
@@ -114,6 +120,8 @@ export class HybridIdGenerator {
       requireExplicitNode = true,
       registry,
       maxDriftMs = DEFAULT_MAX_DRIFT_MS,
+      blind = false,
+      blindSecret = null,
     } = options;
 
     if (!Number.isInteger(maxDriftMs) || maxDriftMs < 1) {
@@ -130,6 +138,18 @@ export class HybridIdGenerator {
     this.profileName = profile;
     this.profileConfig = config;
 
+    // Blind mode: implied by an explicit secret. The secret (not the node)
+    // differentiates instances, so an explicit node is no longer required.
+    this.blind = blind || blindSecret !== null;
+    if (blindSecret !== null && blindSecret.length < 32) {
+      throw new RangeError(fmt(Messages.GEN_BLIND_SECRET_LENGTH, blindSecret.length));
+    }
+    this.blindSecret = this.blind
+      ? blindSecret !== null
+        ? Buffer.from(blindSecret)
+        : secureRandomBytes(32)
+      : null;
+
     if (node !== null) {
       if (node.length !== 2 || !isBase62String(node)) {
         throw new InvalidIdError(Messages.GEN_NODE_INVALID);
@@ -137,6 +157,8 @@ export class HybridIdGenerator {
       this.node = node;
     } else if (config.node === 0) {
       this.node = '';
+    } else if (this.blind) {
+      this.node = autoDetectNode();
     } else if (requireExplicitNode) {
       throw new NodeRequiredError(Messages.GEN_NODE_REQUIRED);
     } else {
@@ -216,6 +238,11 @@ export class HybridIdGenerator {
     return this.maxIdLength;
   }
 
+  /** Whether this instance generates blind (HMAC-hashed timestamp+node) IDs. */
+  isBlind(): boolean {
+    return this.blind;
+  }
+
   // ---------------------------------------------------------------------------
   // Internal
   // ---------------------------------------------------------------------------
@@ -239,8 +266,28 @@ export class HybridIdGenerator {
     }
 
     const random = randomBase62(config.random);
-    const timestamp = encodeBase62(now, config.ts);
-    const body = config.node > 0 ? timestamp + this.node + random : timestamp + random;
+
+    let body: string;
+    if (this.blind && this.blindSecret !== null) {
+      // Replace timestamp+node with opaque chars of equal length. Hides absolute
+      // time; sequential IDs from one instance still reveal relative order.
+      const tsBuf = Buffer.alloc(8);
+      tsBuf.writeBigUInt64BE(BigInt(now));
+      const hmacInput =
+        config.node > 0 ? Buffer.concat([tsBuf, Buffer.from(this.node, 'latin1')]) : tsBuf;
+      const digest = createHmac('sha384', this.blindSecret).update(hmacInput).digest();
+
+      const opaqueLen = config.ts + config.node;
+      let opaque = '';
+      for (let i = 0; i < opaqueLen; i++) {
+        const val = (digest.readUInt8(i * 2) << 8) | digest.readUInt8(i * 2 + 1);
+        opaque += BASE62.charAt(val % 62);
+      }
+      body = opaque + random;
+    } else {
+      const timestamp = encodeBase62(now, config.ts);
+      body = config.node > 0 ? timestamp + this.node + random : timestamp + random;
+    }
 
     // Update only after a successful body build to avoid counter desync on failure.
     this.lastTimestamp = now;
