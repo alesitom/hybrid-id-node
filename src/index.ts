@@ -41,6 +41,8 @@ export {
   type ParsedHybridId,
 } from './metadata.js';
 
+export { minForTimestamp, maxForTimestamp, minForDate, maxForDate } from './range.js';
+
 export {
   HybridIdError,
   IdOverflowError,
