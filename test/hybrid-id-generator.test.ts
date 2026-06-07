@@ -107,6 +107,26 @@ describe('generation', () => {
   });
 });
 
+describe('cross-profile helpers on a nodeless instance', () => {
+  it('throws instead of emitting a too-short body (non-blind)', () => {
+    const gen = new HybridIdGenerator({ profile: 'compact' }); // no node
+    expect(gen.compact()).toHaveLength(16); // own profile is fine
+    expect(() => gen.standard()).toThrow(NodeRequiredError);
+    expect(() => gen.extended()).toThrow(NodeRequiredError);
+  });
+
+  it('still works for a node-bearing instance', () => {
+    const gen = new HybridIdGenerator({ node: 'A1' }); // standard
+    expect(gen.compact()).toHaveLength(16); // drops node, ok
+    expect(gen.extended()).toHaveLength(24); // reuses A1, ok
+  });
+
+  it('blind nodeless instance keeps the correct length across profiles', () => {
+    const gen = new HybridIdGenerator({ profile: 'compact', blind: true });
+    expect(gen.extended()).toHaveLength(24); // opaque segment is ts+node wide
+  });
+});
+
 describe('timestamp ordering across instances', () => {
   it('IDs from the same ms sort by timestamp segment', () => {
     const gen = new HybridIdGenerator({ node: 'A1' });

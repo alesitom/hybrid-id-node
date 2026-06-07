@@ -43,6 +43,8 @@ export const Messages = {
   GEN_NODE_INVALID: 'Node must be exactly 2 base62 characters (0-9, A-Z, a-z)',
   GEN_NODE_REQUIRED:
     'Explicit node is required (requireExplicitNode is enabled). Provide a 2-character base62 node identifier via the node parameter or HYBRID_ID_NODE env var.',
+  GEN_NODE_MISSING_FOR_PROFILE:
+    'Profile "%s" requires a node, but this generator was configured without one (profile "%s"). Construct the generator with a node to use this method.',
   GEN_MAX_LENGTH_INVALID: 'maxIdLength (%d) must be >= body length (%d) for profile "%s"',
   GEN_ENV_PROFILE_INVALID: 'Invalid HYBRID_ID_PROFILE: "%s"',
   GEN_ENV_NODE_INVALID: 'Invalid HYBRID_ID_NODE: "%s". Must be exactly 2 base62 characters.',

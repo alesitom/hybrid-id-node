@@ -12,8 +12,8 @@
  * there — those are bugs in caller code, not part of the catchable ID domain.
  */
 export class HybridIdError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = new.target.name;
     // Preserve the prototype chain across transpilation targets.
     Object.setPrototypeOf(this, new.target.prototype);

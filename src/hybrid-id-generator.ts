@@ -52,9 +52,46 @@ function defaultRegistry(): ProfileRegistry {
 function secureRandomBytes(length: number): Buffer {
   try {
     return randomBytes(length);
-  } catch {
-    throw new HybridIdError(Messages.GEN_URANDOM_FAILED);
+  } catch (e) {
+    throw new HybridIdError(Messages.GEN_URANDOM_FAILED, { cause: e });
   }
+}
+
+/** Resolve the per-instance HMAC key: a defensive copy, a fresh 32 bytes, or null. */
+function resolveBlindSecret(blind: boolean, secret: Buffer | Uint8Array | null): Buffer | null {
+  if (!blind) {
+    return null;
+  }
+  return secret !== null ? Buffer.from(secret) : secureRandomBytes(32);
+}
+
+/**
+ * Compute the opaque (blind) prefix that replaces the timestamp+node segment.
+ *
+ * Pure given its inputs — exported for testing. `hmacNode` is the node string to
+ * fold into the HMAC (empty when the profile is nodeless), and `opaqueLen` is
+ * `ts + node` characters. Reads 2 HMAC bytes per output char to remove modulo bias.
+ *
+ * @internal
+ */
+export function blindOpaquePrefix(
+  secret: Buffer,
+  timestampMs: number,
+  hmacNode: string,
+  opaqueLen: number,
+): string {
+  const tsBuf = Buffer.alloc(8);
+  tsBuf.writeBigUInt64BE(BigInt(timestampMs));
+  const hmacInput =
+    hmacNode !== '' ? Buffer.concat([tsBuf, Buffer.from(hmacNode, 'latin1')]) : tsBuf;
+  const digest = createHmac('sha384', secret).update(hmacInput).digest();
+
+  let opaque = '';
+  for (let i = 0; i < opaqueLen; i++) {
+    const val = (digest.readUInt8(i * 2) << 8) | digest.readUInt8(i * 2 + 1);
+    opaque += BASE62.charAt(val % 62);
+  }
+  return opaque;
 }
 
 /**
@@ -144,11 +181,7 @@ export class HybridIdGenerator {
     if (blindSecret !== null && blindSecret.length < 32) {
       throw new RangeError(fmt(Messages.GEN_BLIND_SECRET_LENGTH, blindSecret.length));
     }
-    this.blindSecret = this.blind
-      ? blindSecret !== null
-        ? Buffer.from(blindSecret)
-        : secureRandomBytes(32)
-      : null;
+    this.blindSecret = resolveBlindSecret(this.blind, blindSecret);
 
     if (node !== null) {
       if (node.length !== 2 || !isBase62String(node)) {
@@ -253,6 +286,16 @@ export class HybridIdGenerator {
       throw new InvalidProfileError(fmt(Messages.GEN_PROFILE_UNKNOWN, profile));
     }
 
+    // A per-profile helper (compact/standard/extended) may target a node-bearing
+    // profile this nodeless instance can't satisfy. In non-blind mode that would
+    // silently emit a too-short body, so fail loudly instead. (Blind mode keeps the
+    // correct length regardless, since the opaque segment is ts+node chars wide.)
+    if (!this.blind && config.node > 0 && this.node === '') {
+      throw new NodeRequiredError(
+        fmt(Messages.GEN_NODE_MISSING_FOR_PROFILE, profile, this.profileName),
+      );
+    }
+
     let now = Date.now();
 
     // Monotonic guard: if the clock did not advance, bump to guarantee strict
@@ -271,18 +314,8 @@ export class HybridIdGenerator {
     if (this.blind && this.blindSecret !== null) {
       // Replace timestamp+node with opaque chars of equal length. Hides absolute
       // time; sequential IDs from one instance still reveal relative order.
-      const tsBuf = Buffer.alloc(8);
-      tsBuf.writeBigUInt64BE(BigInt(now));
-      const hmacInput =
-        config.node > 0 ? Buffer.concat([tsBuf, Buffer.from(this.node, 'latin1')]) : tsBuf;
-      const digest = createHmac('sha384', this.blindSecret).update(hmacInput).digest();
-
-      const opaqueLen = config.ts + config.node;
-      let opaque = '';
-      for (let i = 0; i < opaqueLen; i++) {
-        const val = (digest.readUInt8(i * 2) << 8) | digest.readUInt8(i * 2 + 1);
-        opaque += BASE62.charAt(val % 62);
-      }
+      const hmacNode = config.node > 0 ? this.node : '';
+      const opaque = blindOpaquePrefix(this.blindSecret, now, hmacNode, config.ts + config.node);
       body = opaque + random;
     } else {
       const timestamp = encodeBase62(now, config.ts);

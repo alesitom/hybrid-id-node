@@ -24,5 +24,11 @@ export const Profile = {
 /** One of the three built-in profile names. */
 export type BuiltInProfile = (typeof Profile)[keyof typeof Profile];
 
-/** Anything accepted where a profile is expected: a built-in or a custom profile name. */
+/**
+ * Anything accepted where a profile is expected: a built-in or a custom profile name.
+ *
+ * The `string & {}` member keeps editor autocomplete for the built-in literals while
+ * still accepting any custom profile name — a plain `BuiltInProfile | string` would
+ * collapse to `string` and lose the suggestions.
+ */
 export type ProfileInput = BuiltInProfile | (string & {});

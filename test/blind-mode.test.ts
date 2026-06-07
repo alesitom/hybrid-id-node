@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { HybridIdGenerator } from '../src/hybrid-id-generator.js';
+import { HybridIdGenerator, blindOpaquePrefix } from '../src/hybrid-id-generator.js';
 import { isBase62String } from '../src/base62.js';
 
 const SECRET_A = Buffer.alloc(32, 0xaa);
@@ -81,5 +81,41 @@ describe('blind mode — opacity', () => {
     const gen = new HybridIdGenerator({ node: 'A1', blind: true, blindSecret: SECRET_A });
     const ids = gen.generateBatch(1000);
     expect(new Set(ids).size).toBe(1000);
+  });
+});
+
+describe('blindOpaquePrefix (pure)', () => {
+  const TS = 1_700_000_000_000;
+
+  it('is deterministic for fixed inputs and the right shape', () => {
+    const a = blindOpaquePrefix(SECRET_A, TS, 'A1', 10);
+    const b = blindOpaquePrefix(SECRET_A, TS, 'A1', 10);
+    expect(a).toBe(b);
+    expect(a).toHaveLength(10);
+    expect(isBase62String(a)).toBe(true);
+  });
+
+  it('changes with the secret', () => {
+    expect(blindOpaquePrefix(SECRET_A, TS, 'A1', 10)).not.toBe(
+      blindOpaquePrefix(SECRET_B, TS, 'A1', 10),
+    );
+  });
+
+  it('changes with the timestamp', () => {
+    expect(blindOpaquePrefix(SECRET_A, TS, 'A1', 10)).not.toBe(
+      blindOpaquePrefix(SECRET_A, TS + 1, 'A1', 10),
+    );
+  });
+
+  it('changes with the node', () => {
+    expect(blindOpaquePrefix(SECRET_A, TS, 'A1', 10)).not.toBe(
+      blindOpaquePrefix(SECRET_A, TS, 'B2', 10),
+    );
+  });
+
+  it('nodeless (empty node) folds only the timestamp', () => {
+    const out = blindOpaquePrefix(SECRET_A, TS, '', 8);
+    expect(out).toHaveLength(8);
+    expect(isBase62String(out)).toBe(true);
   });
 });
