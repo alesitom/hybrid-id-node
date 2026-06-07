@@ -46,6 +46,15 @@ export { minForTimestamp, maxForTimestamp, minForDate, maxForDate } from './rang
 export { HybridId } from './hybrid-id.js';
 
 export {
+  toUUIDv8,
+  fromUUIDv8,
+  toUUIDv7,
+  fromUUIDv7,
+  toUUIDv4Format,
+  fromUUIDv4Format,
+} from './uuid.js';
+
+export {
   HybridIdError,
   IdOverflowError,
   InvalidIdError,
