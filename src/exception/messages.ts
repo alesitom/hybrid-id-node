@@ -35,6 +35,8 @@ export const Messages = {
     '%s() does not accept prefixed IDs — prefixes are lost during UUID conversion. Strip the prefix first with extractPrefix() and track it separately.',
   UUID_CONVERSION_INVALID: 'Invalid HybridId: cannot convert to %s',
   UUID_HEX_OVERFLOW: 'Hex value exceeds 64-bit integer range',
+  UUID_TS_INVALID: 'timestampMs must be a non-negative integer or null',
+  UUID_DECODE_OVERFLOW: 'UUID-encoded value does not fit the target profile',
 
   // HybridIdGenerator
   GEN_DRIFT_INVALID: 'maxDriftMs must be a positive integer, got %d',

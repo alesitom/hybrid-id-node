@@ -64,12 +64,12 @@ export function fromUUIDv8(uuid: string): string {
 
   const timestamp = safeHexToBigInt(hex.slice(0, 12));
   const nodeValue = safeHexToBigInt(hex.slice(13, 16));
-  const high2 = safeHexToBigInt(hex.slice(16, 17)) & 0x3n;
-  const low60 = safeHexToBigInt(hex.slice(17, 32));
-  const customC = (high2 << 60n) | low60;
 
-  const profileIndex = (customC >> 60n) & 0x3n;
-  const randomValue = customC & MASK60;
+  // custom_c spans the low nibble of byte 8 (2 profile-index bits after the
+  // variant) plus the trailing 60 bits — but only the 2-bit index and the
+  // 60-bit random are meaningful, so read them directly without re-packing.
+  const profileIndex = safeHexToBigInt(hex.slice(16, 17)) & 0x3n;
+  const randomValue = safeHexToBigInt(hex.slice(17, 32));
 
   let profile: string;
   if (profileIndex === 0n) {
@@ -143,6 +143,13 @@ export function fromUUIDv4Format(
   const hex = stripHyphens(uuid);
   const config = profileConfig(profile);
 
+  // Guard before BigInt() — a non-integer (1.5) throws RangeError and a string
+  // would silently coerce. Reject both up front so the contract is explicit and
+  // the event loop never sees an unbounded numeric-string conversion.
+  if (timestampMs !== null && (typeof timestampMs !== 'number' || !Number.isInteger(timestampMs))) {
+    throw new InvalidIdError(Messages.UUID_TS_INVALID);
+  }
+
   const timestamp = BigInt(timestampMs ?? Date.now());
   if (timestamp < 0n) {
     throw new InvalidIdError(Messages.UUID_NEGATIVE_TS);
@@ -158,15 +165,15 @@ export function fromUUIDv4Format(
     }
     nodeChars = node;
   } else {
-    nodeChars = encodeBase62(safeHexToBigInt(hex.slice(13, 16)), 2);
+    nodeChars = safeEncode(safeHexToBigInt(hex.slice(13, 16)), 2);
   }
 
   const high2 = safeHexToBigInt(hex.slice(16, 17)) & 0x3n;
   const low58 = safeHexToBigInt(hex.slice(17, 32));
   const randomValue = (high2 << 58n) | low58;
 
-  const tsChars = encodeBase62(timestamp, 8);
-  const randomChars = encodeBase62(randomValue, config.random);
+  const tsChars = safeEncode(timestamp, 8);
+  const randomChars = safeEncode(randomValue, config.random);
 
   return config.node > 0 ? tsChars + nodeChars + randomChars : tsChars + randomChars;
 }
@@ -192,6 +199,23 @@ function buildTimestampPreservingUuid(hybridId: string, method: string, version:
   return insertHyphens(hex);
 }
 
+/**
+ * Encode for HybridId reconstruction, translating the internal `IdOverflowError`
+ * into a caller-facing `InvalidIdError`. A value that overflows here came from a
+ * malformed UUID (more bits than the target profile holds), so the failure is
+ * "this UUID is invalid for this profile", not a generator overflow.
+ */
+function safeEncode(value: bigint, length: number): string {
+  try {
+    return encodeBase62(value, length);
+  } catch (e) {
+    if (e instanceof IdOverflowError) {
+      throw new InvalidIdError(Messages.UUID_DECODE_OVERFLOW, { cause: e });
+    }
+    throw e;
+  }
+}
+
 /** Rebuild a HybridId body from decoded numeric components. */
 function assembleBody(
   profile: ProfileInput,
@@ -200,11 +224,11 @@ function assembleBody(
   randomValue: bigint,
 ): string {
   const config = profileConfig(profile);
-  const tsChars = encodeBase62(timestamp, 8);
-  const randomChars = encodeBase62(randomValue, config.random);
+  const tsChars = safeEncode(timestamp, 8);
+  const randomChars = safeEncode(randomValue, config.random);
 
   if (config.node > 0) {
-    return tsChars + encodeBase62(nodeValue, config.node) + randomChars;
+    return tsChars + safeEncode(nodeValue, config.node) + randomChars;
   }
   return tsChars + randomChars;
 }

@@ -67,16 +67,19 @@ export function decodeBase62(str: string): bigint {
     throw new InvalidIdError(Messages.GEN_DECODE_EMPTY);
   }
 
-  // Early guard: more than 11 significant base62 digits always overflows 64-bit
-  // (62^11 > 2^63). Exactly-11 cases are caught by the per-step check below.
+  // Leading zeros don't affect the value, so only the significant digits drive
+  // the loop. More than 11 significant base62 digits always overflows 64-bit
+  // (62^11 > 2^63); exactly-11 cases are caught by the per-step check. Looping
+  // over the significant tail (not the raw string) also bounds the work no matter
+  // how many leading zeros are supplied — no CPU-exhaustion vector on padded input.
   const significant = str.replace(/^0+/, '');
   if (significant.length > 11) {
     throw new IdOverflowError(Messages.GEN_DECODE_OVERFLOW);
   }
 
   let result = 0n;
-  for (let i = 0; i < str.length; i++) {
-    const ch = str.charAt(i);
+  for (let i = 0; i < significant.length; i++) {
+    const ch = significant.charAt(i);
     const pos = BASE62_MAP[ch];
 
     if (pos === undefined) {

@@ -151,3 +151,31 @@ describe('rejections and validation', () => {
     expect(() => fromUUIDv7(uuid, 'extended')).toThrow(InvalidProfileError);
   });
 });
+
+describe('hardening — malformed input never leaks internal errors', () => {
+  it('wraps an over-capacity random segment as InvalidIdError, not IdOverflowError', () => {
+    // Hand-crafted v8 with profile index 0 (compact: 8 random chars, ~47.6 bits)
+    // but the full 60 random bits set — the value overflows the compact random
+    // field, so reconstruction must fail as InvalidIdError (friendly), not as the
+    // internal IdOverflowError that encodeBase62 throws.
+    const overflow = '00000000-0000-8000-8fff-ffffffffffff';
+    expect(() => fromUUIDv8(overflow)).toThrow(InvalidIdError);
+    expect(() => fromUUIDv8(overflow)).not.toThrow(IdOverflowError);
+  });
+
+  it('rejects a non-integer timestampMs before BigInt coercion', () => {
+    const uuid = toUUIDv4Format(std.generate());
+    expect(() => fromUUIDv4Format(uuid, 'standard', 1.5)).toThrow(InvalidIdError);
+  });
+
+  it('rejects a string-typed timestampMs (no silent coercion)', () => {
+    const uuid = toUUIDv4Format(std.generate());
+    // @ts-expect-error — guarding the runtime contract against untyped callers.
+    expect(() => fromUUIDv4Format(uuid, 'standard', '123')).toThrow(InvalidIdError);
+  });
+
+  it('still accepts null timestampMs (defaults to now)', () => {
+    const uuid = toUUIDv4Format(std.generate());
+    expect(() => fromUUIDv4Format(uuid, 'standard', null)).not.toThrow();
+  });
+});
