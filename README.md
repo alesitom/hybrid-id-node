@@ -112,7 +112,20 @@ By default, standard and extended profiles **require** an explicit node to preve
 | `HYBRID_ID_BLIND_SECRET` | — | Base64-encoded persistent HMAC secret |
 | `HYBRID_ID_MAX_LENGTH` | — | Hard cap on full ID length |
 
-This library reads `process.env` directly and bundles no `.env` loader (zero deps). Load your `.env` however you prefer — the native `node --env-file=.env` (Node ≥ 20.6) needs nothing extra; [`dotenv`](https://www.npmjs.com/package/dotenv) is a common alternative. It's up to you.
+This library reads `process.env` directly and bundles **no** `.env` loader, so it stays dependency-free regardless of how you load configuration. Loading the `.env` is the app's job — same split as the PHP package, which reads the environment but leaves `.env` loading to phpdotenv / the framework.
+
+- **Recommended: [`dotenv`](https://www.npmjs.com/package/dotenv)** — the de-facto standard, works on every Node version and runner. Install it in your app and load it before constructing the generator:
+
+  ```ts
+  import 'dotenv/config';
+  import { HybridIdGenerator } from 'hybrid-id';
+
+  const gen = HybridIdGenerator.fromEnv();
+  ```
+
+- **Zero-dependency alternative:** the native flag `node --env-file=.env your-app.js` (Node ≥ 20.6) — nothing to install.
+
+Either way, **`hybrid-id` itself never adds a dependency**; the choice is yours.
 
 > ⚠️ `HYBRID_ID_NODE` and `HYBRID_ID_BLIND_SECRET` are sensitive config — treat the secret like a credential. **Never** expose it through a client-bundled env (e.g. a `VITE_`-prefixed variable): those ship to the browser. The blind secret stays server-side only.
 
