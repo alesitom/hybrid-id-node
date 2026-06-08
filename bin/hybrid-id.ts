@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// CLI entry point — implemented in a later phase.
-import { VERSION } from '../src/index.js';
+import { Application } from '../src/cli.js';
 
-console.log(`hybrid-id v${VERSION}`);
+process.exit(new Application().run(process.argv.slice(2)));

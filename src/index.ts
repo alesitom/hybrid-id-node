@@ -1,5 +1,5 @@
 // Public API surface — populated as phases land.
-export const VERSION = '1.0.0';
+export { VERSION } from './version.js';
 
 export { BASE62, encodeBase62, decodeBase62, isBase62String } from './base62.js';
 
