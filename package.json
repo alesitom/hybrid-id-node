@@ -1,6 +1,6 @@
 {
   "name": "hybrid-id",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Compact, time-sortable unique ID generator for Node.js. Drop-in UUID/ULID alternative with base62 encoding, Stripe-style prefixes, and configurable entropy profiles.",
   "keywords": [
     "uuid",
