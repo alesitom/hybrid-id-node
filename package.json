@@ -49,7 +49,7 @@
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^26.6.2",
     "@vitest/coverage-v8": "^5.0.2",
     "eslint": "^9.17.0",
     "prettier": "^3.4.0",
