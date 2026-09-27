@@ -4,10 +4,19 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    groups:
+      github-actions:
+        patterns: ['*']
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
       interval: 'weekly'
+    # One weekly PR for semver-compatible dev updates; majors stay separate
+    # so each gets its own review and a failing one does not block the rest.
+    groups:
+      dev-dependencies:
+        dependency-type: 'development'
+        update-types: ['minor', 'patch']
     ignore:
       # TS 7 (native compiler) drops the JS compiler API tsup uses for .d.ts,
       # and typescript-eslint 8 requires typescript <6.1. Revisit when both move.
