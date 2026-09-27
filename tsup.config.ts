@@ -6,7 +6,11 @@ export default defineConfig({
     cli: 'bin/hybrid-id.ts',
   },
   format: ['esm', 'cjs'],
-  dts: { entry: { index: 'src/index.ts' } },
+  dts: {
+    entry: { index: 'src/index.ts' },
+    // tsup's dts build sets baseUrl itself, which TS 6 flags as deprecated.
+    compilerOptions: { ignoreDeprecations: '6.0' },
+  },
   clean: true,
   sourcemap: true,
   target: 'node22',
