@@ -8,3 +8,12 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    ignore:
+      # TS 7 (native compiler) drops the JS compiler API tsup uses for .d.ts,
+      # and typescript-eslint 8 requires typescript <6.1. Revisit when both move.
+      - dependency-name: 'typescript'
+        versions: ['>=7.0.0']
+      # Typings must match the lowest supported runtime (engines: >=22), or code
+      # typechecks against APIs that do not exist on Node 22.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
