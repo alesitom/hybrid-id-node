@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-10-10
+
+Packaging-only release for GitHub source archives. The npm package (`dist/`,
+`README.md`, `LICENSE`) is unchanged — upgrading is a drop-in.
+
+### Changed
+
+- GitHub's source zip/tarball for tags no longer includes development files
+  (tests, CI, lint/format configs, planning notes): they are `export-ignore`d
+  via `.gitattributes` (#23). npm already publishes only `dist/`.
+
 ## [1.0.2] - 2026-10-10
 
 Maintenance release. The published package (`dist/`, `README.md`, `LICENSE`) is
@@ -77,6 +88,7 @@ except UUID conversion which targets the RFC 9562 wire format).
 - Dual ESM/CJS build with bundled TypeScript declarations; zero runtime
   dependencies; Node ≥ 22.
 
+[1.0.3]: https://github.com/alesitom/hybrid-id-node/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/alesitom/hybrid-id-node/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/alesitom/hybrid-id-node/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/alesitom/hybrid-id-node/releases/tag/v1.0.0
