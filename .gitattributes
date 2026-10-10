@@ -1,0 +1,11 @@
+# npm publishes only `files` (dist/); this trims GitHub's source archives.
+/.engram export-ignore
+/.github export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/.prettierignore export-ignore
+/.prettierrc.json export-ignore
+/ANALYSIS_AND_PLAN.md export-ignore
+/eslint.config.js export-ignore
+/test export-ignore
+/vitest.config.ts export-ignore
