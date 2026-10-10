@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { HybridIdGenerator } from '../src/hybrid-id-generator.js';
+import { minForTimestamp, maxForTimestamp } from '../src/range.js';
 import {
   parse,
   detectProfile,
@@ -122,6 +123,28 @@ describe('compare', () => {
     const prefixed = `usr_${id}`;
     expect(compare(id, prefixed)).toBe(0);
     expect(compare(id, id)).toBe(0);
+  });
+
+  it('breaks same-millisecond ties by body byte order, in both directions', () => {
+    // generateBatch() advances the timestamp per ID, so it never reaches the
+    // tie-break; min/max for one timestamp share it and differ only in body.
+    const ts = 1_700_000_000_000;
+    const low = minForTimestamp(ts);
+    const high = maxForTimestamp(ts);
+    expect(extractTimestamp(low)).toBe(extractTimestamp(high));
+
+    expect(compare(low, high)).toBe(-1);
+    expect(compare(high, low)).toBe(1);
+    // The prefix is ignored: only the body decides.
+    expect(compare(`zzz_${low}`, `aaa_${high}`)).toBe(-1);
+  });
+
+  it('sorts IDs sharing a millisecond into body byte order', () => {
+    const ts = 1_700_000_000_000;
+    const low = minForTimestamp(ts);
+    const mid = low.slice(0, -1) + '1';
+    const high = maxForTimestamp(ts);
+    expect([high, low, mid].sort(compare)).toEqual([low, mid, high]);
   });
 });
 

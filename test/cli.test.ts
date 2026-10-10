@@ -70,6 +70,15 @@ describe('generate', () => {
     expect(run(['generate', '--profile']).out.stderr).toMatch(/Missing value/);
   });
 
+  it.each(['--count', '--node', '--prefix'])(
+    'reports a missing value for %s as its own error (exit 1)',
+    (flag) => {
+      const { code, out } = run(['generate', flag]);
+      expect(code).toBe(1);
+      expect(out.stderr).toContain(`Missing value for ${flag}`);
+    },
+  );
+
   it('surfaces an invalid profile as an error (exit 1)', () => {
     const { code, out } = run(['generate', '-p', 'bogus']);
     expect(code).toBe(1);
@@ -85,6 +94,15 @@ describe('generate', () => {
 
 describe('generate --blind', () => {
   it('errors without a secret', () => {
+    const { code, out } = run(['generate', '--blind']);
+    expect(code).toBe(1);
+    expect(out.stderr).toMatch(/HYBRID_ID_BLIND_SECRET/);
+  });
+
+  it('rejects a secret that is not base64 instead of decoding it leniently', () => {
+    // Buffer.from(…, 'base64') skips invalid characters and would still yield
+    // bytes from this value, so only the format check makes it an error.
+    process.env.HYBRID_ID_BLIND_SECRET = '@@not*valid*base64@@';
     const { code, out } = run(['generate', '--blind']);
     expect(code).toBe(1);
     expect(out.stderr).toMatch(/HYBRID_ID_BLIND_SECRET/);
