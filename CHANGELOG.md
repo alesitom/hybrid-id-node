@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-10-10
+
+Maintenance release. The published package (`dist/`, `README.md`, `LICENSE`) is
+unchanged; only development tooling and tests changed. Upgrading is a drop-in.
+
+### Security
+
+- Dev-only transitive dependency `source-map-js` 1.2.1 → 1.2.2, resolving
+  GHSA-68fv-2mgg-jv7q (high: event-loop DoS via indexed source-map section
+  offsets). It reached the toolchain through `@vitest/coverage-v8` and `tsup`;
+  it is not part of the published package (#21).
+
+### Changed
+
+- Tests for `compare()`'s same-millisecond tie-break (both directions, prefix
+  ignored) and for the CLI's missing-value and non-base64 blind-secret errors —
+  paths exposed by Vitest 5 statement-level coverage (#3, #20).
+- Dev dependencies: vitest and `@vitest/coverage-v8` 5.0.3, typescript-eslint
+  8.71 (#19).
+
 ## [1.0.1] - 2026-09-27
 
 Maintenance release. The published package (`dist/`, `README.md`, `LICENSE`) is
@@ -57,5 +77,6 @@ except UUID conversion which targets the RFC 9562 wire format).
 - Dual ESM/CJS build with bundled TypeScript declarations; zero runtime
   dependencies; Node ≥ 22.
 
+[1.0.2]: https://github.com/alesitom/hybrid-id-node/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/alesitom/hybrid-id-node/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/alesitom/hybrid-id-node/releases/tag/v1.0.0
